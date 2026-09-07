@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -68,19 +68,6 @@ export function VaultForm({ initialData, onSubmit, onCancel }: VaultFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-zinc-100">
-          {initialData ? "Editar Entrada" : "Nueva Entrada"}
-        </h2>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="text-zinc-400 hover:text-zinc-100"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
       <Input
         id="title"
         label="Título"
