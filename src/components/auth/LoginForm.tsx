@@ -147,13 +147,6 @@ export function LoginForm() {
           {status === "submitting" ? "Desbloqueando..." : "Desbloquear"}
         </Button>
       </form>
-
-      <p className="text-center text-sm text-zinc-400">
-        ¿No tienes cuenta configurada?{" "}
-        <Link href="/register" className="text-emerald-400 hover:underline">
-          Regístrate
-        </Link>
-      </p>
     </div>
   );
 }
