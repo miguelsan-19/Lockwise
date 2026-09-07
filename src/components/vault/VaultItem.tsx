@@ -2,17 +2,16 @@
 
 import { useState } from "react";
 import { Copy, Eye, EyeOff, ExternalLink, Trash2, Edit } from "lucide-react";
+import type { VerifyAction } from "./VerifyGateModal";
 import type { VaultEntryDecrypted } from "@/types";
-
-type RevealAction = "toggle" | "copy";
 
 interface VaultItemProps {
   entry: VaultEntryDecrypted;
   revealed: boolean;
-  onRequestReveal: (entry: VaultEntryDecrypted, action: RevealAction) => void;
+  onRequestReveal: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
   onHide: (id: string) => void;
-  onDelete: (id: string) => void;
-  onEdit: (entry: VaultEntryDecrypted) => void;
+  onRequestDelete: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
+  onRequestEdit: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
 }
 
 const categoryColors: Record<string, string> = {
@@ -38,8 +37,8 @@ export function VaultItem({
   revealed,
   onRequestReveal,
   onHide,
-  onDelete,
-  onEdit,
+  onRequestDelete,
+  onRequestEdit,
 }: VaultItemProps) {
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -53,7 +52,7 @@ export function VaultItem({
     if (revealed) {
       onHide(entry.id);
     } else {
-      onRequestReveal(entry, "toggle");
+      onRequestReveal(entry, "reveal-toggle");
     }
   };
 
@@ -61,7 +60,7 @@ export function VaultItem({
     if (revealed) {
       copyToClipboard(entry.password, "password");
     } else {
-      onRequestReveal(entry, "copy");
+      onRequestReveal(entry, "reveal-copy");
     }
   };
 
@@ -139,13 +138,13 @@ export function VaultItem({
 
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={() => onEdit(entry)}
+            onClick={() => onRequestEdit(entry, "edit")}
             className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
           >
             <Edit className="h-4 w-4" />
           </button>
           <button
-            onClick={() => onDelete(entry.id)}
+            onClick={() => onRequestDelete(entry, "delete")}
             className="rounded-lg p-2 text-zinc-400 hover:bg-red-500/10 hover:text-red-400"
           >
             <Trash2 className="h-4 w-4" />

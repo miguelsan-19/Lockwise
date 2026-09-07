@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Eye } from "lucide-react";
+import { Loader2, Eye, Pencil, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { verifyTotpCode, getVerifiedTotpFactor } from "@/lib/mfa";
 import { getMasterSalt, getPasswordVerifier } from "@/lib/masterSalt";
@@ -11,19 +11,46 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
-interface RevealGateModalProps {
+export type VerifyAction =
+  | "reveal-toggle"
+  | "reveal-copy"
+  | "edit"
+  | "delete";
+
+interface VerifyGateModalProps {
   isOpen: boolean;
+  action: VerifyAction;
   entryTitle: string;
   onSuccess: () => void;
   onClose: () => void;
 }
 
-export function RevealGateModal({
+const actionLabels: Record<VerifyAction, { title: string; message: string }> = {
+  "reveal-toggle": {
+    title: "Ver contraseña",
+    message: "ingresa el código para ver la contraseña",
+  },
+  "reveal-copy": {
+    title: "Copiar contraseña",
+    message: "ingresa el código para copiar la contraseña",
+  },
+  edit: {
+    title: "Editar entrada",
+    message: "ingresa el código para editar esta entrada",
+  },
+  delete: {
+    title: "Eliminar entrada",
+    message: "ingresa el código para eliminar esta entrada",
+  },
+};
+
+export function VerifyGateModal({
   isOpen,
+  action,
   entryTitle,
   onSuccess,
   onClose,
-}: RevealGateModalProps) {
+}: VerifyGateModalProps) {
   const [mode, setMode] = useState<"checking" | "totp" | "password">(
     "checking"
   );
@@ -31,6 +58,8 @@ export function RevealGateModal({
   const [masterPassword, setMasterPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const labels = actionLabels[action];
 
   useEffect(() => {
     if (isOpen) {
@@ -110,12 +139,22 @@ export function RevealGateModal({
     onSuccess();
   };
 
+  const actionIcon =
+    action === "delete" ? (
+      <Trash2 className="mr-2 h-4 w-4" />
+    ) : action === "edit" ? (
+      <Pencil className="mr-2 h-4 w-4" />
+    ) : (
+      <Eye className="mr-2 h-4 w-4" />
+    );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Ver contraseña">
+    <Modal isOpen={isOpen} onClose={onClose} title={labels.title}>
       <form onSubmit={handleVerify} className="space-y-4">
         <p className="text-sm text-zinc-400">
-          Para ver la contraseña de{" "}
-          <span className="font-medium text-zinc-100">{entryTitle}</span>{" "}
+          Para{" "}
+          <span className="font-medium text-zinc-100">{labels.message}</span>{" "}
+          de <span className="font-medium text-zinc-100">{entryTitle}</span>,{" "}
           {mode === "totp"
             ? "ingresa el código de 6 dígitos de Google Authenticator."
             : "ingresa tu contraseña maestra."}
@@ -123,7 +162,7 @@ export function RevealGateModal({
 
         {mode === "totp" && (
           <Input
-            id="revealTotpCode"
+            id="verifyTotpCode"
             label="Código de 6 dígitos"
             placeholder="000000"
             inputMode="numeric"
@@ -138,7 +177,7 @@ export function RevealGateModal({
 
         {mode === "password" && (
           <PasswordInput
-            id="revealMasterPassword"
+            id="verifyMasterPassword"
             label="Contraseña maestra"
             placeholder="Tu contraseña maestra"
             value={masterPassword}
@@ -158,9 +197,9 @@ export function RevealGateModal({
             {busy ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Eye className="mr-2 h-4 w-4" />
+              actionIcon
             )}
-            Ver contraseña
+            Continuar
           </Button>
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancelar

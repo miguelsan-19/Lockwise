@@ -1,17 +1,16 @@
 "use client";
 
 import { VaultItem } from "./VaultItem";
+import type { VerifyAction } from "./VerifyGateModal";
 import type { VaultEntryDecrypted } from "@/types";
-
-type RevealAction = "toggle" | "copy";
 
 interface VaultListProps {
   entries: VaultEntryDecrypted[];
   revealedIds: Set<string>;
-  onRequestReveal: (entry: VaultEntryDecrypted, action: RevealAction) => void;
+  onRequestReveal: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
   onHide: (id: string) => void;
-  onDelete: (id: string) => void;
-  onEdit: (entry: VaultEntryDecrypted) => void;
+  onRequestDelete: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
+  onRequestEdit: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
 }
 
 export function VaultList({
@@ -19,8 +18,8 @@ export function VaultList({
   revealedIds,
   onRequestReveal,
   onHide,
-  onDelete,
-  onEdit,
+  onRequestDelete,
+  onRequestEdit,
 }: VaultListProps) {
   if (entries.length === 0) {
     return (
@@ -59,8 +58,8 @@ export function VaultList({
           revealed={revealedIds.has(entry.id)}
           onRequestReveal={onRequestReveal}
           onHide={onHide}
-          onDelete={onDelete}
-          onEdit={onEdit}
+          onRequestDelete={onRequestDelete}
+          onRequestEdit={onRequestEdit}
         />
       ))}
     </div>

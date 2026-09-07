@@ -15,13 +15,11 @@ import { useVaultStore } from "@/hooks/useVault";
 import { VaultList } from "@/components/vault/VaultList";
 import { VaultSearch } from "@/components/vault/VaultSearch";
 import { VaultForm } from "@/components/vault/VaultForm";
-import { RevealGateModal } from "@/components/vault/RevealGateModal";
+import { VerifyGateModal, type VerifyAction } from "@/components/vault/VerifyGateModal";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import type { VaultEntryDecrypted, VaultEntryCreate, VaultCategory } from "@/types";
-
-type RevealAction = "toggle" | "copy";
 
 const AUTO_LOCK_MS = 5 * 60 * 1000; // 5 minutos
 const MAX_ATTEMPTS = 5;
@@ -36,10 +34,10 @@ export default function VaultPage() {
   const [attempts, setAttempts] = useState(0);
   const [lockUntil, setLockUntil] = useState<number | null>(null);
 
-  // Gate 2FA para revelar contraseñas
-  const [revealTarget, setRevealTarget] =
+  // Gate 2FA para revelar, editar y eliminar entradas
+  const [gateTarget, setGateTarget] =
     useState<VaultEntryDecrypted | null>(null);
-  const [pendingAction, setPendingAction] = useState<RevealAction>("toggle");
+  const [gateAction, setGateAction] = useState<VerifyAction>("reveal-toggle");
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
 
   const {
@@ -235,10 +233,10 @@ export default function VaultPage() {
     }
   };
 
-  const handleRequestReveal = useCallback(
-    (entry: VaultEntryDecrypted, action: RevealAction) => {
-      setPendingAction(action);
-      setRevealTarget(entry);
+  const requestGate = useCallback(
+    (entry: VaultEntryDecrypted, action: VerifyAction) => {
+      setGateAction(action);
+      setGateTarget(entry);
     },
     []
   );
@@ -251,33 +249,49 @@ export default function VaultPage() {
     });
   }, []);
 
-  const handleRevealSuccess = useCallback(() => {
-    if (!revealTarget) return;
-    const id = revealTarget.id;
-    setRevealedIds((prev) => new Set(prev).add(id));
-  }, [revealTarget]);
-
-  const handleRevealModalClose = useCallback(() => {
-    setRevealTarget(null);
+  const handleGateClose = useCallback(() => {
+    setGateTarget(null);
   }, []);
 
-  const handleRevealCopy = useCallback(async () => {
-    if (!revealTarget) return;
-    await navigator.clipboard.writeText(revealTarget.password);
-  }, [revealTarget]);
+  const handleDeleteEntry = useCallback(
+    async (id: string) => {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("vault_entries")
+        .delete()
+        .eq("id", id);
 
-  const handleRevealModalSuccess = useCallback(() => {
-    handleRevealSuccess();
-    if (pendingAction === "copy") {
-      handleRevealCopy();
+      if (error) {
+        console.error("Error deleting entry:", error);
+        return;
+      }
+
+      removeEntry(id);
+      setRevealedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    },
+    [removeEntry]
+  );
+
+  const handleGateSuccess = useCallback(async () => {
+    if (!gateTarget) return;
+    const entry = gateTarget;
+    setGateTarget(null);
+
+    if (gateAction === "reveal-toggle") {
+      setRevealedIds((prev) => new Set(prev).add(entry.id));
+    } else if (gateAction === "reveal-copy") {
+      setRevealedIds((prev) => new Set(prev).add(entry.id));
+      await navigator.clipboard.writeText(entry.password);
+    } else if (gateAction === "edit") {
+      setEditingEntry(entry);
+    } else if (gateAction === "delete") {
+      await handleDeleteEntry(entry.id);
     }
-    handleRevealModalClose();
-  }, [
-    pendingAction,
-    handleRevealSuccess,
-    handleRevealCopy,
-    handleRevealModalClose,
-  ]);
+  }, [gateTarget, gateAction, handleDeleteEntry]);
 
   const handleCreate = async (data: VaultEntryCreate) => {
     if (!keys) return;
@@ -386,23 +400,6 @@ export default function VaultPage() {
     setEditingEntry(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar esta entrada?")) return;
-
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("vault_entries")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      console.error("Error deleting entry:", error);
-      return;
-    }
-
-    removeEntry(id);
-  };
-
   if (isUnlocking) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -462,10 +459,10 @@ export default function VaultPage() {
       <VaultList
         entries={filteredEntries()}
         revealedIds={revealedIds}
-        onRequestReveal={handleRequestReveal}
+        onRequestReveal={requestGate}
         onHide={handleHide}
-        onDelete={handleDelete}
-        onEdit={(entry) => setEditingEntry(entry)}
+        onRequestDelete={requestGate}
+        onRequestEdit={requestGate}
       />
 
       <Modal
@@ -493,11 +490,12 @@ export default function VaultPage() {
         )}
       </Modal>
 
-      <RevealGateModal
-        isOpen={!!revealTarget}
-        entryTitle={revealTarget?.title ?? ""}
-        onSuccess={handleRevealModalSuccess}
-        onClose={handleRevealModalClose}
+      <VerifyGateModal
+        isOpen={!!gateTarget}
+        action={gateAction}
+        entryTitle={gateTarget?.title ?? ""}
+        onSuccess={handleGateSuccess}
+        onClose={handleGateClose}
       />
     </div>
   );
