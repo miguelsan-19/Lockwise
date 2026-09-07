@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export type VerifyAction =
+  | "open-detail"
   | "reveal-toggle"
   | "reveal-copy"
   | "edit"
@@ -26,6 +27,10 @@ interface VerifyGateModalProps {
 }
 
 const actionLabels: Record<VerifyAction, { title: string; message: string }> = {
+  "open-detail": {
+    title: "Ver detalles",
+    message: "ingresa el código para ver los detalles",
+  },
   "reveal-toggle": {
     title: "Ver contraseña",
     message: "ingresa el código para ver la contraseña",

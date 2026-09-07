@@ -6,21 +6,10 @@ import type { VaultEntryDecrypted } from "@/types";
 
 interface VaultListProps {
   entries: VaultEntryDecrypted[];
-  revealedIds: Set<string>;
-  onRequestReveal: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
-  onHide: (id: string) => void;
-  onRequestDelete: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
-  onRequestEdit: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
+  onRequestDetail: (entry: VaultEntryDecrypted, action: VerifyAction) => void;
 }
 
-export function VaultList({
-  entries,
-  revealedIds,
-  onRequestReveal,
-  onHide,
-  onRequestDelete,
-  onRequestEdit,
-}: VaultListProps) {
+export function VaultList({ entries, onRequestDetail }: VaultListProps) {
   if (entries.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -55,11 +44,7 @@ export function VaultList({
         <VaultItem
           key={entry.id}
           entry={entry}
-          revealed={revealedIds.has(entry.id)}
-          onRequestReveal={onRequestReveal}
-          onHide={onHide}
-          onRequestDelete={onRequestDelete}
-          onRequestEdit={onRequestEdit}
+          onRequestDetail={onRequestDetail}
         />
       ))}
     </div>

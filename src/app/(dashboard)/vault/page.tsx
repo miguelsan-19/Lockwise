@@ -15,6 +15,7 @@ import { useVaultStore } from "@/hooks/useVault";
 import { VaultList } from "@/components/vault/VaultList";
 import { VaultSearch } from "@/components/vault/VaultSearch";
 import { VaultForm } from "@/components/vault/VaultForm";
+import { VaultDetail } from "@/components/vault/VaultDetail";
 import { VerifyGateModal, type VerifyAction } from "@/components/vault/VerifyGateModal";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -37,8 +38,10 @@ export default function VaultPage() {
   // Gate 2FA para revelar, editar y eliminar entradas
   const [gateTarget, setGateTarget] =
     useState<VaultEntryDecrypted | null>(null);
-  const [gateAction, setGateAction] = useState<VerifyAction>("reveal-toggle");
+  const [gateAction, setGateAction] = useState<VerifyAction>("open-detail");
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+  const [selectedEntry, setSelectedEntry] =
+    useState<VaultEntryDecrypted | null>(null);
 
   const {
     entries,
@@ -281,7 +284,9 @@ export default function VaultPage() {
     const entry = gateTarget;
     setGateTarget(null);
 
-    if (gateAction === "reveal-toggle") {
+    if (gateAction === "open-detail") {
+      setSelectedEntry(entry);
+    } else if (gateAction === "reveal-toggle") {
       setRevealedIds((prev) => new Set(prev).add(entry.id));
     } else if (gateAction === "reveal-copy") {
       setRevealedIds((prev) => new Set(prev).add(entry.id));
@@ -290,6 +295,7 @@ export default function VaultPage() {
       setEditingEntry(entry);
     } else if (gateAction === "delete") {
       await handleDeleteEntry(entry.id);
+      setSelectedEntry(null);
     }
   }, [gateTarget, gateAction, handleDeleteEntry]);
 
@@ -398,6 +404,19 @@ export default function VaultPage() {
 
     await loadEntries();
     setEditingEntry(null);
+    setSelectedEntry((prev) =>
+      prev && prev.id === editingEntry.id
+        ? {
+            ...editingEntry,
+            title: data.title,
+            username: data.username,
+            password: data.password,
+            url: data.url ?? null,
+            notes: data.notes ?? null,
+            category: data.category ?? null,
+          }
+        : prev
+    );
   };
 
   if (isUnlocking) {
@@ -443,27 +462,46 @@ export default function VaultPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Mi Vault</h1>
+          <h1 className="text-2xl font-bold text-zinc-100">
+            {selectedEntry ? "Detalles" : "Mi Vault"}
+          </h1>
           <p className="text-sm text-zinc-400">
-            {entries.length} entrada{entries.length !== 1 ? "s" : ""}
+            {selectedEntry?.title ?? `${entries.length} entrada${entries.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Entrada
-        </Button>
+        {!selectedEntry && (
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Entrada
+          </Button>
+        )}
       </div>
 
-      <VaultSearch />
+      {selectedEntry ? (
+        <VaultDetail
+          entry={selectedEntry}
+          revealed={revealedIds.has(selectedEntry.id)}
+          onBack={() => {
+            setSelectedEntry(null);
+            setRevealedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(selectedEntry.id);
+              return next;
+            });
+          }}
+          onRequestAction={requestGate}
+          onHide={handleHide}
+        />
+      ) : (
+        <>
+          <VaultSearch />
 
-      <VaultList
-        entries={filteredEntries()}
-        revealedIds={revealedIds}
-        onRequestReveal={requestGate}
-        onHide={handleHide}
-        onRequestDelete={requestGate}
-        onRequestEdit={requestGate}
-      />
+          <VaultList
+            entries={filteredEntries()}
+            onRequestDetail={requestGate}
+          />
+        </>
+      )}
 
       <Modal
         isOpen={showForm}
