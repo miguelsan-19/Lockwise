@@ -65,6 +65,8 @@ export default function VaultPage() {
       if (keys && Date.now() - lastActivityRef.current > AUTO_LOCK_MS) {
         clearKeys();
         setRevealedIds(new Set());
+        setMasterPasswordInput("");
+        setUnlockError("");
         setIsUnlocking(true);
       }
     };
